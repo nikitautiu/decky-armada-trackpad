@@ -1,0 +1,10 @@
+{
+  "name": "Touch Trackpad",
+  "author": "Nikita Utiu",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": ["touchscreen", "trackpad", "controller"],
+    "description": "Use the touchscreen as Steam Deck trackpads, with settings per game. Needs armada-trackpad-daemon."
+  }
+}

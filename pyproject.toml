@@ -1,0 +1,55 @@
+[project]
+name = "decky-armada-trackpad"
+version = "0.1.0"
+description = "Decky Loader plugin that controls armada-trackpad-daemon from the quick access menu"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+authors = [{ name = "Nikita Utiu", email = "nikita.utiu@gmail.com" }]
+# The backend runs in Decky Loader's bundled Python with the standard library only.
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.0",
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+# Not an installable package: Decky loads `main.py` and puts `py_modules` on the path.
+package = false
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "C90", "I", "N", "UP", "S", "BLE", "B", "A", "C4", "PL", "TCH", "RUF", "TID", "D"]
+# Google style documents constructor arguments in the class docstring, so `__init__` needs none.
+ignore = ["D107"]
+
+[tool.ruff.lint.per-file-ignores]
+# pytest asserts with plain `assert`. Expected values in assertions are the point of a test, not magic numbers.
+"tests/**" = ["S101", "PLR2004"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+
+[tool.mypy]
+strict = true
+files = ["main.py", "py_modules", "tests"]
+# `typings` holds the stub for Decky's runtime `decky` module.
+mypy_path = [".", "py_modules", "typings"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "py_modules", "tests"]
+addopts = "-q"

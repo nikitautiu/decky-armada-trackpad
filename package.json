@@ -1,0 +1,49 @@
+{
+  "name": "decky-armada-trackpad",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Decky Loader plugin that controls armada-trackpad-daemon from the quick access menu",
+  "keywords": [
+    "decky",
+    "decky-plugin",
+    "steam-deck",
+    "touchscreen",
+    "trackpad",
+    "controller",
+    "armada"
+  ],
+  "license": "MIT",
+  "author": "Nikita Utiu",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nikitautiu/decky-armada-trackpad.git"
+  },
+  "homepage": "https://github.com/nikitautiu/decky-armada-trackpad",
+  "bugs": {
+    "url": "https://github.com/nikitautiu/decky-armada-trackpad/issues"
+  },
+  "type": "module",
+  "packageManager": "pnpm@10.34.7",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@decky/api": "1.1.3",
+    "@decky/ui": "4.13.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@decky/rollup": "1.0.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/webpack": "5.28.5",
+    "rollup": "4.64.7",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

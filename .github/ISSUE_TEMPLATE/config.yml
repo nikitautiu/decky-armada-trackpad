@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Trackpad behavior or installing the daemon
+    url: https://github.com/nikitautiu/armada-trackpad-daemon/issues
+    about: Problems with how the pads move, the toggle key or chord, or the daemon's install belong to the daemon.

@@ -1,0 +1,4 @@
+# Supply-chain guard: never resolve a release younger than a week (minutes).
+minimumReleaseAge: 10080
+# No dependency may run install scripts unless listed here.
+onlyBuiltDependencies: []
