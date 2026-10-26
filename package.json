@@ -1,6 +1,6 @@
 {
   "name": "decky-armada-trackpad",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Decky Loader plugin that controls armada-trackpad-daemon from the quick access menu",
   "keywords": [
