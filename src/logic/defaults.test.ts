@@ -38,7 +38,7 @@ const DAEMON_DEFAULTS: Settings = {
 const AT_PLUGIN_DEFAULTS: Settings = {
   ...DAEMON_DEFAULTS,
   side: 0.2,
-  tap_drag_ms: 120,
+  tap_drag_ms: 150,
   "left.anchor": "fixed",
   "left.edges": four("clamp"),
   "right.anchor": "fixed",
@@ -58,7 +58,7 @@ describe("PLUGIN_DEFAULTS", () => {
   it.each<[string, string | number | boolean]>([
     ["pads", "both"],
     ["side", 0.2],
-    ["tap_drag_ms", 120],
+    ["tap_drag_ms", 150],
     ["right.tap", true],
     ["right.tap_drag", true],
   ])("sets %s to %s", (key, value) => {
@@ -84,7 +84,7 @@ describe("defaultValue", () => {
   });
 
   it("returns the plugin's shorter drag window over the daemon's", () => {
-    expect(defaultValue(DAEMON_DEFAULTS, "tap_drag_ms")).toBe(120);
+    expect(defaultValue(DAEMON_DEFAULTS, "tap_drag_ms")).toBe(150);
   });
 
   it("returns the daemon's default for a key the plugin leaves alone", () => {
@@ -141,14 +141,14 @@ describe("resetAllChanges", () => {
     expect(resetAllChanges(settings, DAEMON_DEFAULTS)).toEqual({ size: 1, side: 0.2, "right.anchor": "fixed" });
   });
 
-  it("brings the drag window to 120 ms", () => {
-    expect(resetAllChanges({ ...AT_PLUGIN_DEFAULTS, tap_drag_ms: 200 }, DAEMON_DEFAULTS)).toEqual({ tap_drag_ms: 120 });
+  it("brings the drag window to 150 ms", () => {
+    expect(resetAllChanges({ ...AT_PLUGIN_DEFAULTS, tap_drag_ms: 200 }, DAEMON_DEFAULTS)).toEqual({ tap_drag_ms: 150 });
   });
 
   it("starts both pads from the daemon's defaults: left Pad, right Swipe with drag", () => {
     expect(resetAllChanges(DAEMON_DEFAULTS, DAEMON_DEFAULTS)).toEqual({
       side: 0.2,
-      tap_drag_ms: 120,
+      tap_drag_ms: 150,
       "left.anchor": "fixed",
       "left.edges": four("clamp"),
       "right.anchor": "fixed",

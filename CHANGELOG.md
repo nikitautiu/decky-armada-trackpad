@@ -4,6 +4,12 @@ This file lists the user-visible changes to this plugin. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- The drag window (how long a tap waits for a drag) defaults to 150 ms instead of 120 ms.
+
 ## [0.1.0] - 2026-10-26
 
 ### Added
@@ -24,4 +30,5 @@ This file lists the user-visible changes to this plugin. The format follows
 - A "Something went wrong" message with the error, instead of a blank panel or modal, when a view fails to render.
 - Release zips built by CI for `v*` tags.
 
+[Unreleased]: https://github.com/nikitautiu/decky-armada-trackpad/compare/v0.1.0...main
 [0.1.0]: https://github.com/nikitautiu/decky-armada-trackpad/releases/tag/v0.1.0

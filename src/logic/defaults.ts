@@ -13,13 +13,13 @@ function presetSettings(side: Side, preset: Preset): Settings {
 
 /**
  * The plugin's own defaults, over the daemon's: the left pad is a Pad, the right a Swipe with tap-and-drag, each 20%
- * in from the screen's edge (Horizontal position), and a tap waits only 120 ms for a drag. Taps press the pad click,
+ * in from the screen's edge (Horizontal position), and a tap waits only 150 ms for a drag. Taps press the pad click,
  * the daemon's tap output. The presets are the plugin's, written as anchor and edges.
  */
 export const PLUGIN_DEFAULTS: Settings = {
   pads: "both",
   side: 0.2,
-  tap_drag_ms: 120,
+  tap_drag_ms: 150,
   ...presetSettings("left", "pad"),
   ...presetSettings("right", "swipe"),
   "right.tap": true,
