@@ -7,7 +7,7 @@ plugin speaks, is described in armada-trackpad-daemon's
 
 ## Layout
 
-- `main.py`: the backend entry Decky loads; the callables the panel invokes. It runs in Decky Loader's bundled Python
+- `main.py`: the backend entry Decky loads, with the callables the panel invokes. It runs in Decky Loader's bundled Python
   (3.14 in Decky 3.3) with the standard library only: nothing is installed next to it.
 - `py_modules/armada_trackpad_plugin/`: the backend. `sync.py` keeps the daemon and the stored profiles in step,
   `compat.py` decides whether a daemon can be used, `rpc.py` is the JSON-RPC client, `store.py` and `profiles.py`
@@ -34,12 +34,16 @@ scripts/node.sh pnpm typecheck
 scripts/node.sh pnpm lint                # Biome; scripts/node.sh pnpm format applies its fixes
 scripts/node.sh pnpm test                # Vitest
 scripts/node.sh pnpm build               # dist/index.js
+
+scripts/vale.sh sync                     # prose lint styles, once
+scripts/vale.sh                          # Vale on the tracked Markdown files
 ```
 
 `scripts/node.sh` runs Node and pnpm in a pinned podman container that mounts only this repository, so dependency
-code never sees the rest of your home directory; only `pnpm install`, `add` and `update` get network access. Plain
-`pnpm install`, `pnpm test` and so on work too, with Node 24 and the pnpm version that `packageManager` in
-`package.json` names (`corepack enable` provides it).
+code never sees the rest of your home directory; only `pnpm install`, `add` and `update` get network access.
+`scripts/vale.sh` runs [Vale](https://vale.sh) with the [ai-tells](https://github.com/tbhb/vale-ai-tells) style the
+same way, with network access for `sync` alone. Plain `pnpm install`, `pnpm test` and so on work too, with Node 24
+and the pnpm version that `packageManager` in `package.json` names (`corepack enable` provides it).
 
 CI runs the same checks on every push to `main` and every pull request. All of them must pass.
 
@@ -47,8 +51,8 @@ CI runs the same checks on every push to `main` and every pull request. All of t
 
 `dev/deploy.sh HOST` builds the frontend and copies the plugin into `~/homebrew/plugins/decky-armada-trackpad` on
 `HOST` over SSH, then prints how to reload it in Decky. The plugin dir must already exist with its files writable by
-the SSH user, for example after installing a release zip once and changing the owner of the files; do this on a
-development device only, since anything running as that user can then change the code Decky loads.
+the SSH user: install a release zip once and change the owner of the files. Keep this to a development device,
+because any process of that user can then change the plugin code in that folder.
 
 The trackpads only work in a game: Steam's own UI keeps them off, so test their behaviour with a game in front.
 
@@ -71,24 +75,23 @@ ruff (configured in `pyproject.toml`) and mypy in strict mode enforce most of th
 ### TypeScript
 
 `pnpm typecheck` runs `tsc` with `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`,
-`noImplicitOverride` and `noFallthroughCasesInSwitch`; `pnpm lint` runs Biome.
+`noImplicitOverride` and `noFallthroughCasesInSwitch`. `pnpm lint` runs Biome.
 
 - Line width 120, double quotes, 2-space indent, semicolons.
 - No `any`. Backend data arrives as `unknown` and is narrowed by one parser per message type, in `src/logic/wire.ts`.
-  No `as` to silence the checker; a cast needs a comment saying why it is sound.
+  A cast (`as`) needs a comment saying why it is sound.
 - Discriminated unions rather than optional fields, so wrong states can't be represented.
 - `type` for data shapes, `readonly` on data passed between modules, named exports only (the plugin entry's default
   export is the exception Decky requires).
-- Components hold no logic beyond wiring: anything that can be a pure function lives in `src/logic/` and is tested
-  there.
+- Components only wire things up. Anything that can be a pure function goes in `src/logic/`, with its tests.
 - TSDoc on exported functions, types and components, for the caller.
 
 ### Both
 
 - Readable code first: small functions that each do one thing, with inputs as parameters and results as return
-  values; side effects at the edges.
+  values. Side effects happen at the edges.
 - Things that change together live together: colocate by feature, not by kind.
-- No dead code, no unused abstractions.
+- Delete dead code and unused abstractions.
 - Comments say why, not what, and never narrate history. No em dashes in prose.
 - User-facing text uses American spelling, as Steam's own UI does. The product is **Touch Trackpad**, its on/off
   switch **Trackpads**, the pads the **left pad** and **right pad**; **Pad** is only a preset's name. Notices call the
@@ -96,18 +99,18 @@ ruff (configured in `pyproject.toml`) and mypy in strict mode enforce most of th
 
 ## Tests
 
-Changes are made test first: write a failing test for the behaviour, make it pass with the simplest code, then clean
-up while the tests stay green. When a change breaks an existing test, update that test first.
+Changes are made test first. Write a failing test for the behaviour and make it pass with the simplest code. Then
+clean up, running the tests after each step. When a change breaks an existing test, update that test first.
 
 - Mock only at the boundaries: the daemon (use `tests/fake_daemon.py`), the filesystem, Decky's `decky` module, and
   `@decky/api`'s `callable` and events on the frontend. Never mock internal modules.
-- Synthetic, predictable data; no random values.
+- Synthetic, predictable data, with fixed values.
 - pytest: group tests in classes by concern, name them `test_<what>_when_<condition>`, give every test, class and
   helper a docstring, and use `pytest.mark.parametrize` instead of copies.
 - Vitest: test files sit next to the code as `<name>.test.ts`, `describe` blocks by concern, `it.each` instead of
   copies, and names that say what and when (`"shows Custom when no preset matches"`).
-- One assertion concept per test. Assert the fields a test is about rather than a whole evolving object.
-- Components are checked on a device, not with DOM snapshots.
+- One assertion concept per test. Assert the fields a test is about rather than a whole object that grows over time.
+- Check components on a device. DOM snapshots aren't used.
 
 ## Security model
 
@@ -116,8 +119,8 @@ callables. So:
 
 - It runs as the session user: `plugin.json` has no `root` flag.
 - It talks only to the daemon's Unix socket, and checks with `SO_PEERCRED` that the daemon runs as the same user.
-  It opens no network listener.
-- It runs no shell. The few commands it runs (`systemctl --user` for the daemon's unit) are fixed argument lists
+  It doesn't open a network listener.
+- It doesn't run a shell. The few commands it runs (`systemctl --user` for the daemon's unit) are fixed argument lists
   with absolute paths, a timeout and a cap on their output.
 - Every callable validates its arguments (`validate.py`) before anything reaches the daemon or the profile store.
 - It never logs touch coordinates or key streams.
@@ -129,8 +132,8 @@ issue.
 ## The daemon's protocol
 
 The daemon's `status` reports an integer `protocol`, which changes only when the control protocol changes in an
-incompatible way. The plugin works with exactly `DAEMON_PROTOCOL` (`compat.py`): a daemon without it or with a lower
-one has to be updated, a higher one needs a newer plugin. An additive change to the protocol keeps the number, so the
+incompatible way. The plugin needs a daemon whose `protocol` equals `DAEMON_PROTOCOL` (`compat.py`). A daemon without it or with a lower
+one has to be updated, and a higher one needs a newer plugin. An additive change to the protocol keeps the number, so the
 plugin must tolerate fields it doesn't know. Change `DAEMON_PROTOCOL` only together with the daemon.
 
 ## Steam UI workarounds
@@ -144,7 +147,7 @@ Decky or SteamOS update.
 
 - Work on a branch and open a pull request against `main`.
 - [Conventional commits](https://www.conventionalcommits.org/): `feat(panel): …`, `fix(sync): …`, `docs: …`. Keep
-  each commit focused, with its tests, and passing every check.
+  each commit focused, with its tests, and passing the checks above.
 - Note user-visible changes under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md).
 
 ## Releases

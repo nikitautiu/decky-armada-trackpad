@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to this plugin are documented here. The format follows
+This file lists the user-visible changes to this plugin. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 

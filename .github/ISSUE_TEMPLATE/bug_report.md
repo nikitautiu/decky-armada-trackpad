@@ -15,7 +15,7 @@ labels: bug
 
 **Versions**
 
-- Device and OS (for example Retroid Pocket Nova, Armada OS ...):
+- Device and OS (such as Retroid Pocket Nova, Armada OS ...):
 - Decky Loader:
 - Touch Trackpad:
 - Trackpad daemon (Advanced > Inspect shows it, or `armada-trackpadctl --version`):
