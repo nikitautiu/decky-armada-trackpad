@@ -8,3 +8,6 @@ node_modules/
 dist/
 out/
 .cache/
+.vale/styles/*
+!.vale/styles/config/
+.vale/styles/config/templates/

@@ -56,9 +56,22 @@ jobs:
           path: dist/index.js
           if-no-files-found: error
 
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The image scripts/vale.sh runs locally; styles come from the Packages URL in .vale.ini.
+      - name: Vale
+        run: |
+          image="$(sed -n 's/^IMAGE="\(.*\)"$/\1/p' scripts/vale.sh)"
+          docker run --rm -v "$PWD:/work" -w /work "$image" sync
+          git ls-files -z '*.md' | xargs -0 docker run --rm -v "$PWD:/work" -w /work --network none "$image"
+
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [backend, frontend]
+    needs: [backend, frontend, docs]
     runs-on: ubuntu-latest
     permissions:
       contents: write
