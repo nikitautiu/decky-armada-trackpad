@@ -42,6 +42,22 @@ It's a [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) plugin,
    - **Swipe** recenters under your finger at an edge, for mouse and camera.
    - **Stick** follows your finger past an edge.
 
+## How it works
+
+- In trackpad mode the daemon grabs the touchscreen, so games and gamescope stop getting touches.
+- It splits the touches by screen half and writes each half to its own virtual touch device. The devices declare
+  the Bluetooth bus, because InputPlumber only adopts virtual input devices from that bus.
+- InputPlumber routes the two devices to the left and right trackpads of its virtual Steam Deck controller.
+  Steam Input reads that controller like a real Deck.
+- A tap becomes a pad click: the daemon sends the press with pad force while the finger is still down.
+- The daemon grabs the toggle key on the game's Xwayland display, which hides the key from the game. It reads the
+  L1 + R1 + L3 + R3 chord from the virtual controller.
+- This plugin talks to the daemon over a Unix socket (JSON-RPC). It stores the profiles and sends a game's settings
+  when the game starts.
+
+The daemon's [design doc](https://github.com/nikitautiu/armada-trackpad-daemon/blob/main/docs/design.md) has the
+details.
+
 [Issues](https://github.com/nikitautiu/decky-armada-trackpad/issues) ·
 [Contributing](CONTRIBUTING.md) · MIT [license](LICENSE) · Large language models (LLMs) assisted the development of
 this project. The maintainer reviews and tests every change.

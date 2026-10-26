@@ -38,5 +38,6 @@ unmounts
 uv
 Vale
 Vitest
+Xwayland
 [Bb]ackend
 [Tt]rackpads?
