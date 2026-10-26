@@ -7,8 +7,10 @@ the Deck's trackpads, and Steam Input maps it like the real one: mouse, joystick
 button switches back to the normal touchscreen.
 
 It's a [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) plugin, the Quick Access panel for
-[armada-trackpad-daemon](https://github.com/nikitautiu/armada-trackpad-daemon). It runs on the Retroid Pocket Nova
-with Armada OS, in game mode.
+[armada-trackpad-daemon](https://github.com/nikitautiu/armada-trackpad-daemon).
+
+> **Supported:** Retroid Pocket Nova on Armada OS (game mode). It's tested on that device only, so other devices
+> and setups may not work.
 
 ## Install
 
