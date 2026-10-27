@@ -36,14 +36,15 @@ scripts/node.sh pnpm test                # Vitest
 scripts/node.sh pnpm build               # dist/index.js
 
 uv run pre-commit install                # once: checks on each commit, tests on each push
-scripts/vale.sh sync && scripts/vale.sh  # Vale on all tracked Markdown files
+uv run pre-commit run --all-files        # every check on every file, Vale included
 ```
 
 `scripts/node.sh` runs Node and pnpm in a pinned podman container that mounts only this repository, so dependency
-code never sees the rest of your home directory; only `pnpm install`, `add` and `update` get network access.
-`scripts/vale.sh` runs [Vale](https://vale.sh) with the [ai-tells](https://github.com/tbhb/vale-ai-tells) style the
-same way, with network access for `sync` alone. Plain `pnpm install`, `pnpm test` and so on work too, with Node 24
+code never sees the rest of your home directory; only `pnpm install`, `add` and `update` get network access. Plain `pnpm install`, `pnpm test` and so on work too, with Node 24
 and the pnpm version that `packageManager` in `package.json` names (`corepack enable` provides it).
+
+The pre-commit hooks lint the Markdown with [Vale](https://vale.sh) and the
+[ai-tells](https://github.com/tbhb/vale-ai-tells) style. pre-commit installs Vale from PyPI on first use.
 
 CI runs the same checks on every push to `main` and every pull request. All of them must pass.
 
