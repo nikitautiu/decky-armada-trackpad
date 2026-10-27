@@ -23,7 +23,7 @@ You need Python 3.12 or newer, [uv](https://docs.astral.sh/uv/) and, for the fro
 pnpm.
 
 ```sh
-uv sync                                  # backend dev environment: pytest, ruff, mypy
+uv sync                                  # backend dev environment: pytest, ruff, mypy, pre-commit
 uv run pytest
 uv run ruff check
 uv run ruff format --check               # drop --check to apply it
@@ -35,8 +35,8 @@ scripts/node.sh pnpm lint                # Biome; scripts/node.sh pnpm format ap
 scripts/node.sh pnpm test                # Vitest
 scripts/node.sh pnpm build               # dist/index.js
 
-scripts/vale.sh sync                     # prose lint styles, once
-scripts/vale.sh                          # Vale on the tracked Markdown files
+uv run pre-commit install                # once: checks on each commit, tests on each push
+scripts/vale.sh sync && scripts/vale.sh  # Vale on all tracked Markdown files
 ```
 
 `scripts/node.sh` runs Node and pnpm in a pinned podman container that mounts only this repository, so dependency
