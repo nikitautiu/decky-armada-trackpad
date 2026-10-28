@@ -1,15 +1,11 @@
+import { callMethod } from "./steamObjects";
+
 // Steam UI workaround: where Steam's own UI loads a Steam game's small icon from, as `appStore.GetIconURLForApp`
 // returns it on the Nova; no API documents it.
 const COMMUNITY_ICONS = "https://shared.steamstatic.com/community_assets/images/apps";
 const ICON_HASH = /^[0-9a-f]{40}$/;
 // An icon from Steam's CDN, or an inline image as Steam gives for a non-Steam shortcut; nothing that could run.
 const USABLE_URL = /^(https:\/\/|data:image\/)/;
-
-function callMethod(target: unknown, method: string, argument: unknown): unknown {
-  if (typeof target !== "object" || target === null) return undefined;
-  const fn: unknown = Reflect.get(target, method);
-  return typeof fn === "function" ? Reflect.apply(fn, target, [argument]) : undefined;
-}
 
 function usableUrl(value: unknown): string | null {
   return typeof value === "string" && USABLE_URL.test(value) ? value : null;

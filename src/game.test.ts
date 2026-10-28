@@ -7,8 +7,13 @@ vi.mock("@decky/ui", () => ({ Router: { MainRunningApp: { appid: 2379780, displa
 const BALATRO = 2379780;
 const POLL_MS = 250;
 
-/** A `SteamUIStore` that runs `appid`. */
-const store = (appid = BALATRO): unknown => ({ MainRunningAppID: appid });
+const PORTAL = 620;
+
+/** A `SteamUIStore` that runs `appid` and shows the page at `route`. */
+const store = (appid = BALATRO, route = "/library/home"): unknown => ({
+  MainRunningAppID: appid,
+  m_WindowStore: { GamepadUIMainWindowInstance: { m_history: { location: { pathname: route } } } },
+});
 
 /** A `SteamUIStore` whose getter throws, as a renamed or torn-down Steam internal can. */
 const throwingStore = (): unknown => ({
@@ -19,9 +24,9 @@ const throwingStore = (): unknown => ({
 
 /** A reporter that records every call, in order, and settles as `outcome` says. */
 const recorder = (outcome: () => Promise<unknown> = () => Promise.resolve()) => {
-  const calls: string[] = [];
-  const report = (appid: number, name: string): Promise<unknown> => {
-    calls.push(`${appid} ${name}`);
+  const calls: [number, string, boolean][] = [];
+  const report = (appid: number, name: string, running: boolean): Promise<unknown> => {
+    calls.push([appid, name, running]);
     return outcome();
   };
   return { calls, report };
@@ -31,12 +36,14 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   globalThis.SteamUIStore = store();
+  globalThis.appStore = { GetAppOverviewByAppID: () => ({ display_name: "Portal 2" }) };
 });
 
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
   globalThis.SteamUIStore = undefined;
+  globalThis.appStore = undefined;
 });
 
 describe("trackGame reports", () => {
@@ -44,7 +51,7 @@ describe("trackGame reports", () => {
     const { calls, report } = recorder();
     const stop = trackGame(report);
     await vi.advanceTimersByTimeAsync(POLL_MS * 4);
-    expect(calls).toEqual([`${BALATRO} Balatro`]);
+    expect(calls).toEqual([[BALATRO, "Balatro", true]]);
     stop();
   });
 
@@ -54,7 +61,23 @@ describe("trackGame reports", () => {
     await vi.advanceTimersByTimeAsync(0);
     globalThis.SteamUIStore = store(0);
     await vi.advanceTimersByTimeAsync(POLL_MS);
-    expect(calls).toEqual([`${BALATRO} Balatro`, "0 "]);
+    expect(calls).toEqual([
+      [BALATRO, "Balatro", true],
+      [0, "", false],
+    ]);
+    stop();
+  });
+
+  it("reports the game whose library page is open while no game runs", async () => {
+    const { calls, report } = recorder();
+    const stop = trackGame(report);
+    await vi.advanceTimersByTimeAsync(0);
+    globalThis.SteamUIStore = store(0, `/library/app/${PORTAL}`);
+    await vi.advanceTimersByTimeAsync(POLL_MS);
+    expect(calls).toEqual([
+      [BALATRO, "Balatro", true],
+      [PORTAL, "Portal 2", false],
+    ]);
     stop();
   });
 
@@ -65,7 +88,10 @@ describe("trackGame reports", () => {
     );
     const stop = trackGame(report);
     await vi.advanceTimersByTimeAsync(POLL_MS * 4);
-    expect(calls).toEqual([`${BALATRO} Balatro`, `${BALATRO} Balatro`]);
+    expect(calls).toEqual([
+      [BALATRO, "Balatro", true],
+      [BALATRO, "Balatro", true],
+    ]);
     stop();
   });
 
@@ -78,11 +104,14 @@ describe("trackGame reports", () => {
     const stop = trackGame(report);
     globalThis.SteamUIStore = store(0);
     await vi.advanceTimersByTimeAsync(POLL_MS * 2);
-    expect(calls).toEqual([`${BALATRO} Balatro`]);
+    expect(calls).toEqual([[BALATRO, "Balatro", true]]);
     held = false;
     release();
     await vi.advanceTimersByTimeAsync(POLL_MS);
-    expect(calls).toEqual([`${BALATRO} Balatro`, "0 "]);
+    expect(calls).toEqual([
+      [BALATRO, "Balatro", true],
+      [0, "", false],
+    ]);
     stop();
   });
 
@@ -92,7 +121,7 @@ describe("trackGame reports", () => {
     await vi.advanceTimersByTimeAsync(0);
     globalThis.SteamUIStore = throwingStore();
     await vi.advanceTimersByTimeAsync(POLL_MS * 4);
-    expect(calls).toEqual([`${BALATRO} Balatro`]);
+    expect(calls).toEqual([[BALATRO, "Balatro", true]]);
     stop();
   });
 });
@@ -105,6 +134,6 @@ describe("trackGame stop", () => {
     stop();
     globalThis.SteamUIStore = store(0);
     await vi.advanceTimersByTimeAsync(POLL_MS * 4);
-    expect(calls).toEqual([`${BALATRO} Balatro`]);
+    expect(calls).toEqual([[BALATRO, "Balatro", true]]);
   });
 });

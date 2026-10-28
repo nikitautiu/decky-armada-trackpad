@@ -18,15 +18,15 @@ export const setSettings = callable<[changes: Readonly<Record<string, SettingVal
 );
 
 /**
- * Use the running game's own profile, or the global one. A profile created now starts from the global settings
- * with `initial` applied; a game that already has one keeps its settings.
+ * Use the reported game's own profile (the running game's, else the browsed game's), or the global one. A profile
+ * created now starts from the global settings with `initial` applied; a game that already has one keeps its settings.
  */
 export const setGameProfile = callable<[enabled: boolean, initial: Readonly<Record<string, SettingValue>>], unknown>(
   "set_game_profile",
 );
 
-/** Report the running game; an app id of 0 means none. */
-export const setCurrentGame = callable<[appid: number, name: string], unknown>("set_current_game");
+/** Report the running game, else the game whose library page is open (`running` false); an app id of 0 means none. */
+export const setCurrentGame = callable<[appid: number, name: string, running: boolean], unknown>("set_current_game");
 
 /** Ask the daemon to re-check its wiring and availability. */
 export const check = callable<[], unknown>("check");

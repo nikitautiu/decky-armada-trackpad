@@ -80,7 +80,7 @@ function TrackpadsRow({ snapshot, sessionOn, run }: SectionProps & { readonly se
   );
 }
 
-/** The profile in use: its line, the running game's per-game switch, and its default. */
+/** The profile in use: its line, the reported game's per-game switch (running or browsed), and its default. */
 function ProfileSection({ snapshot, run }: SectionProps): ReactNode {
   const [on, editOn] = useDebouncedEdit(snapshot.defaultOn, SWITCH_DEBOUNCE_MS, (value) => run(setDefault(value)));
   return (

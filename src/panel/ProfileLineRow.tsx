@@ -7,7 +7,7 @@ import { PROFILE_LINE } from "./style";
 const ICON_PX = 20;
 
 /**
- * The running game's small icon; nothing when Steam has none or it fails to load.
+ * The game's small icon; nothing when Steam has none or it fails to load.
  *
  * Read on every render, which follows each snapshot, so an app store that wasn't ready when the panel opened
  * still gives the icon once it is; the read is two lookups in Steam's memory.

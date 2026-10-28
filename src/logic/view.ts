@@ -77,7 +77,7 @@ export function defaultDescription(snapshot: Connected): string | null {
   return snapshot.gameProfile ? null : "Global profile";
 }
 
-/** Which profile the panel edits, for the line above the per-game switch: the running game's, or the global one. */
+/** Which profile the panel edits, for the line above the per-game switch: the reported game's, or the global one. */
 export type ProfileLine =
   | { readonly kind: "global" }
   | {
