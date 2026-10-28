@@ -72,11 +72,6 @@ export function recheckDescription(snapshot: Connected): string | null {
   return snapshot.sessionOn === null ? snapshot.status.reason : null;
 }
 
-/** The description of "Start with trackpads on": "Global profile" for the global default; none for a game's own. */
-export function defaultDescription(snapshot: Connected): string | null {
-  return snapshot.gameProfile ? null : "Global profile";
-}
-
 /** Which profile the panel edits, for the line above the per-game switch: the reported game's, or the global one. */
 export type ProfileLine =
   | { readonly kind: "global" }

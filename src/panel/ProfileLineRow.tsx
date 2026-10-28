@@ -5,6 +5,8 @@ import type { ProfileLine } from "../logic/view";
 import { PROFILE_LINE } from "./style";
 
 const ICON_PX = 20;
+// One line, cut with an ellipsis like the Performance tab's, so a long name never changes the line's height.
+const ONE_LINE = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 } as const;
 
 /**
  * The game's small icon; nothing when Steam has none or it fails to load.
@@ -35,16 +37,17 @@ function GameIcon({ appid }: { readonly appid: number }): ReactNode {
 export function ProfileLineRow({ line }: { readonly line: ProfileLine }): ReactNode {
   return (
     <PanelSectionRow>
-      <div style={{ ...PROFILE_LINE, display: "flex", alignItems: "center", gap: "1ch" }}>
+      {/* The icon's height as the minimum, so switching between a game's line and the global one keeps it. */}
+      <div style={{ ...PROFILE_LINE, display: "flex", alignItems: "center", gap: "1ch", minHeight: `${ICON_PX}px` }}>
         {line.kind === "game" ? (
           <>
             <GameIcon appid={line.appid} />
-            <span>
+            <span style={ONE_LINE}>
               Using <span style={{ textTransform: "uppercase" }}>{line.name}</span> profile
             </span>
           </>
         ) : (
-          <span>Using global profile</span>
+          <span style={ONE_LINE}>Using global profile</span>
         )}
       </div>
     </PanelSectionRow>

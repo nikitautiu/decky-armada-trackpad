@@ -8,7 +8,6 @@ import { panelOf } from "../logic/preview/geometry";
 import { sizeAndPosition } from "../logic/sliders";
 import {
   type Connected,
-  defaultDescription,
   padOptions,
   pickedChoice,
   profileLine,
@@ -100,13 +99,7 @@ function ProfileSection({ snapshot, run }: SectionProps): ReactNode {
         </PanelSectionRow>
       )}
       <PanelSectionRow>
-        <ToggleField
-          label="Start with trackpads on"
-          bottomSeparator={SECTION_BREAK}
-          description={defaultDescription(snapshot)}
-          checked={on}
-          onChange={editOn}
-        />
+        <ToggleField label="Start with trackpads on" bottomSeparator={SECTION_BREAK} checked={on} onChange={editOn} />
       </PanelSectionRow>
     </PanelSection>
   );

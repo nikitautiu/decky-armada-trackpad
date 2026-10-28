@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   backFrom,
   type Connected,
-  defaultDescription,
   numberSetting,
   type PanelView,
   padChoiceLabel,
@@ -109,16 +108,6 @@ describe("toggleHint", () => {
     ["none", "none", "No toggle key or chord set"],
   ])("shows key %s and chord %s as %s", (toggle_key, toggle_chord, expected) => {
     expect(toggleHint({ ...STATUS, toggle_key, toggle_chord })).toBe(expected);
-  });
-});
-
-describe("defaultDescription", () => {
-  it("names the global profile", () => {
-    expect(defaultDescription(connected({ game: BALATRO }))).toBe("Global profile");
-  });
-
-  it("has none for a game's own profile", () => {
-    expect(defaultDescription(connected({ game: BALATRO, profile: "game:2379780", gameProfile: true }))).toBeNull();
   });
 });
 
