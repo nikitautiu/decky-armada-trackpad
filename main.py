@@ -155,7 +155,7 @@ class Plugin:
             return _rejected(sync, error)
 
     async def set_game_profile(self, enabled: object, initial: object) -> dict[str, object]:
-        """Enable or disable the running game's own profile.
+        """Enable or disable the reported game's own profile: the running game's, else the browsed game's.
 
         Args:
             enabled: Whether the game's profile applies; must be a bool.
@@ -171,19 +171,22 @@ class Plugin:
         except validate.InvalidRequest as error:
             return _rejected(sync, error)
 
-    async def set_current_game(self, appid: object, name: object) -> dict[str, object]:
-        """Tell the backend which game runs: its name, and its profile while the daemon reports no game in front.
+    async def set_current_game(self, appid: object, name: object, running: object) -> dict[str, object]:
+        """Tell the backend which game the panel is for, and its profile while the daemon reports no game in front.
+
+        The game is the running game, else the game whose library page is open.
 
         Args:
             appid: The Steam app id, an int in `1..2**32-1`; 0 or null means no game.
             name: The game's display name, at most 128 characters; ignored without a game.
+            running: Whether the game runs, a bool; a game only browsed gets its profile but no Trackpads state.
 
         Returns:
             The snapshot. Never raises: a rejected argument returns the snapshot with `error` set.
         """
         sync = _sync()
         try:
-            return await sync.set_game(validate.game(appid, name))
+            return await sync.set_game(validate.game(appid, name), running=validate.flag(running))
         except validate.InvalidRequest as error:
             return _rejected(sync, error)
 

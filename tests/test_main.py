@@ -80,9 +80,9 @@ class FakeSync:
         self.calls.append(("set_game_profile", (enabled, dict(initial))))
         return self.snapshot()
 
-    async def set_game(self, game: Game | None) -> dict[str, object]:
+    async def set_game(self, game: Game | None, *, running: bool = True) -> dict[str, object]:
         """Record the call."""
-        self.calls.append(("set_game", game))
+        self.calls.append(("set_game", (game, running)))
         return self.snapshot()
 
 
@@ -234,17 +234,32 @@ class TestCallables:
 
     def test_set_current_game_rejects_bad_appid(self, fake_sync: type[FakeSync]) -> None:
         """An app id outside the allowed range is an error, not a call."""
-        result = asyncio.run(Plugin().set_current_game(-5, "Evil"))
+        result = asyncio.run(Plugin().set_current_game(-5, "Evil", True))
 
         assert isinstance(result["error"], str)
         assert fake_sync.instances[0].calls == []
 
-    def test_set_current_game_delegates_game_and_none(self, fake_sync: type[FakeSync]) -> None:
-        """A valid game and the no-game value reach `Sync.set_game`."""
-        asyncio.run(Plugin().set_current_game(2379780, "Balatro"))
-        asyncio.run(Plugin().set_current_game(0, ""))
+    @pytest.mark.parametrize("running", [1, "true", None])
+    def test_set_current_game_rejects_a_running_flag_that_is_not_a_bool(
+        self, fake_sync: type[FakeSync], running: object
+    ) -> None:
+        """Whether the game runs must be a real bool."""
+        result = asyncio.run(Plugin().set_current_game(2379780, "Balatro", running))
 
-        assert fake_sync.instances[0].calls == [("set_game", Game(2379780, "Balatro")), ("set_game", None)]
+        assert isinstance(result["error"], str)
+        assert fake_sync.instances[0].calls == []
+
+    def test_set_current_game_delegates_game_running_flag_and_none(self, fake_sync: type[FakeSync]) -> None:
+        """A running game, a browsed game and the no-game value reach `Sync.set_game`."""
+        asyncio.run(Plugin().set_current_game(2379780, "Balatro", True))
+        asyncio.run(Plugin().set_current_game(620, "Portal 2", False))
+        asyncio.run(Plugin().set_current_game(0, "", False))
+
+        assert fake_sync.instances[0].calls == [
+            ("set_game", (Game(2379780, "Balatro"), True)),
+            ("set_game", (Game(620, "Portal 2"), False)),
+            ("set_game", (None, False)),
+        ]
 
     def test_simple_callables_delegate(self, fake_sync: type[FakeSync]) -> None:
         """`get_state`, `set_trackpads`, `set_default`, `check` and `set_game_profile` reach the Sync."""

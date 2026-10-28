@@ -1091,6 +1091,162 @@ class TestGameSwitch:
         _run(tmp_path, body)
 
 
+class TestLibraryPage:
+    """A game reported from its library page, with no game running: its profile is in use but it has no state."""
+
+    def test_browsed_game_profile_is_in_use_until_the_page_is_left(self, tmp_path: Path) -> None:
+        """Opening a game's page replays its profile; leaving the page replays the global values."""
+
+        async def body(rig: _Rig) -> None:
+            """The scenario this test runs against the fake daemon."""
+            rig.fake.focused_app = STEAM_UI
+            sync = await _start_connected(rig, _with_games((BALATRO, True, {"size": 1.5})))
+            browsing = await sync.set_game(BALATRO, running=False)
+            assert (browsing["profile"], browsing["game_profile"], rig.fake.settings["size"]) == (
+                BALATRO_REF,
+                True,
+                1.5,
+            )
+            assert browsing["game"] == {"appid": BALATRO.appid, "name": "Balatro"}
+            left = await sync.set_game(None)
+            assert (left["profile"], rig.fake.settings["size"]) == (GLOBAL, 1.0)
+
+        _run(tmp_path, body)
+
+    def test_browsed_game_without_a_profile_keeps_global(self, tmp_path: Path) -> None:
+        """A page of a game without a profile sends nothing and offers the game for a new profile."""
+
+        async def body(rig: _Rig) -> None:
+            """The scenario this test runs against the fake daemon."""
+            rig.fake.focused_app = STEAM_UI
+            sync = await _start_connected(rig)
+            snapshot = await sync.set_game(BALATRO, running=False)
+            assert rig.settings_writes() == []
+            assert (snapshot["profile"], snapshot["game_profile"]) == (GLOBAL, False)
+            assert snapshot["game"] == {"appid": BALATRO.appid, "name": "Balatro"}
+
+        _run(tmp_path, body)
+
+    def test_profile_enabled_from_the_page_is_created_and_edited(self, tmp_path: Path) -> None:
+        """Enabling the browsed game's profile creates it with the initial changes; edits then land in it."""
+
+        async def body(rig: _Rig) -> None:
+            """The scenario this test runs against the fake daemon."""
+            rig.fake.focused_app = STEAM_UI
+            sync = await _start_connected(rig, Store(last_instance=OLD_INSTANCE, global_settings={"size": 1.5}))
+            await sync.set_game(BALATRO, running=False)
+            enabled = await sync.set_game_profile(True, {"side": 0.2})
+            assert (enabled["profile"], enabled["error"]) == (BALATRO_REF, None)
+            await sync.set_settings({"size": 1.7}, BALATRO_REF)
+            stored = load(rig.store_path).store
+            assert stored.games[BALATRO.appid] == GameProfile(
+                "Balatro", enabled=True, settings={"size": 1.7, "side": 0.2}
+            )
+            assert stored.global_settings == {"size": 1.5}
+
+        _run(tmp_path, body)
+
+    def test_browsed_game_has_no_trackpads_state(self, tmp_path: Path) -> None:
+        """A game that isn't running has no state to set: nothing is sent and `error` says why."""
+
+        async def body(rig: _Rig) -> None:
+            """The scenario this test runs against the fake daemon."""
+            rig.fake.focused_app = STEAM_UI
+            sync = await _start_connected(rig, _with_games((BALATRO, True, {})))
+            browsing = await sync.set_game(BALATRO, running=False)
+            rules = rig.fake.settings["focus_modes"]
+            snapshot = await sync.set_trackpads(True)
+            assert (browsing["session_on"], snapshot["session_on"], snapshot["error"]) == (
+                None,
+                None,
+                "no game is running",
+            )
+            assert rig.calls("set_mode") == []
+            assert rig.fake.settings["focus_modes"] == rules
+
+        _run(tmp_path, body)
+
+    def test_default_set_from_the_page_goes_to_the_browsed_profile(self, tmp_path: Path) -> None:
+        """Start with trackpads on, set from the page, is saved in the game's profile and its rule; no switch."""
+
+        async def body(rig: _Rig) -> None:
+            """The scenario this test runs against the fake daemon."""
+            rig.fake.focused_app = STEAM_UI
+            sync = await _start_connected(rig, _with_games((BALATRO, True, {})))
+            await sync.set_game(BALATRO, running=False)
+            snapshot = await sync.set_default(True)
+            assert (snapshot["default_on"], snapshot["error"]) == (True, None)
+            stored = load(rig.store_path).store
+            assert (stored.games[BALATRO.appid].active, stored.global_active) == (True, False)
+            rules = {"apps": {"2379780": "on", "769": "off_locked"}, "default": "off"}
+            assert rig.fake.settings["focus_modes"] == rules
+            assert rig.calls("set_mode") == []
+
+        _run(tmp_path, body)
+
+    def test_launch_from_the_page_keeps_the_profile_without_a_second_replay(self, tmp_path: Path) -> None:
+        """The browsed game starting keeps its profile on the daemon and gets its state from the default."""
+
+        async def body(rig: _Rig) -> None:
+            """The scenario this test runs against the fake daemon."""
+            rig.fake.focused_app = STEAM_UI
+            sync = await _start_connected(rig, _with_games((BALATRO, True, {"size": 1.5})))
+            await sync.set_game(BALATRO, running=False)
+            launched = await sync.set_game(BALATRO)
+            assert rig.settings_writes() == [{"changes": {"size": 1.5}}]
+            assert (launched["profile"], launched["session_on"]) == (BALATRO_REF, False)
+
+        _run(tmp_path, body)
+
+    def test_quitting_to_the_page_ends_the_games_state(self, tmp_path: Path) -> None:
+        """A game that exits back to its page keeps its profile in use, but its state and rule are gone."""
+
+        async def body(rig: _Rig) -> None:
+            """The scenario this test runs against the fake daemon."""
+            rig.fake.focused_app = STEAM_UI
+            sync = await _start_connected(rig, _with_games((BALATRO, True, {"size": 1.5})))
+            await sync.set_game(BALATRO)
+            await sync.set_trackpads(True)
+            quit_to_page = await sync.set_game(BALATRO, running=False)
+            assert (quit_to_page["profile"], quit_to_page["session_on"]) == (BALATRO_REF, None)
+            rules = {"apps": {"2379780": "off", "769": "off_locked"}, "default": "off"}
+            assert rig.fake.settings["focus_modes"] == rules
+            assert rig.settings_writes() == [{"changes": {"size": 1.5}}]
+
+        _run(tmp_path, body)
+
+    def test_game_closing_in_front_is_forgotten_when_steam_reports_its_page(self, tmp_path: Path) -> None:
+        """A game in front that quits to its page stops being the game in use once Steam's UI takes focus."""
+
+        async def body(rig: _Rig) -> None:
+            """The scenario this test runs against the fake daemon."""
+            sync = await _start_connected(rig, _with_games((BALATRO, True, {})))
+            await sync.set_game(BALATRO)
+            await rig.fake.focus(BALATRO.appid)
+            await rig.events.next("state", _focused_on(BALATRO.appid))
+            await sync.set_trackpads(True)
+            await sync.set_game(BALATRO, running=False)  # the daemon still reports the game in front
+            await rig.fake.focus(STEAM_UI)
+            snapshot = await rig.events.next("state", _focused_on(STEAM_UI))
+            assert snapshot["session_on"] is None
+
+        _run(tmp_path, body)
+
+    def test_page_report_drops_the_previous_backends_states(self, tmp_path: Path) -> None:
+        """A first report of a browsed game counts as no game running for the states a previous backend left."""
+
+        async def body(rig: _Rig) -> None:
+            """The scenario this test runs against the fake daemon."""
+            rig.fake.focused_app = STEAM_UI
+            rig.fake.settings["focus_modes"] = {"apps": {"769": "off_locked", "2379780": "on"}, "default": "off"}
+            sync = await _start_connected(rig, Store(last_instance=rig.fake.instance))
+            browsing = await sync.set_game(BALATRO, running=False)
+            assert browsing["session_on"] is None
+            assert rig.fake.settings["focus_modes"] == {"apps": {"769": "off_locked"}, "default": "off"}
+
+        _run(tmp_path, body)
+
+
 def _state_changed(status: Mapping[str, object]) -> bytes:
     """One `state_changed` line carrying `status`."""
     return (json.dumps({"jsonrpc": "2.0", "method": "state_changed", "params": dict(status)}) + "\n").encode()

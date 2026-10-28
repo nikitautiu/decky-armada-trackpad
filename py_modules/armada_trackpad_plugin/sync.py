@@ -3,10 +3,11 @@
 The daemon keeps no settings across restarts, so the plugin holds them: a daemon instance the plugin has not
 synced yet gets the active profile written to it, and every change seen on a synced instance (from the panel or
 the CLI) is folded into the profile it belongs to. The profile in use follows the game the daemon reports in
-front. Pad mode follows focus rules the plugin writes to the daemon, which applies them itself on every focus
-change: a running game gets its current state (Trackpads, kept in memory while it runs), which starts from its
-profile's saved default (Active in the store) and changes with the toggle key or chord and the panel. All daemon
-I/O and store changes run under `Sync.lock`.
+front, else the game Steam reports: the running game, or with none running the game whose library page is open,
+so the panel can edit a game's profile before it starts. Pad mode follows focus rules the plugin writes to the
+daemon, which applies them itself on every focus change: a running game gets its current state (Trackpads, kept in
+memory while it runs), which starts from its profile's saved default (Active in the store) and changes with the
+toggle key or chord and the panel. All daemon I/O and store changes run under `Sync.lock`.
 """
 
 import asyncio
@@ -204,7 +205,8 @@ class Sync:
     Attributes:
         lock: Held around all daemon I/O and store changes.
         store: The profiles as last read or changed; the file follows it unless a save fails.
-        game: The running game Steam reports, or `None`.
+        game: The game Steam reports: the running game, else the game whose library page is open; or `None`.
+        running: Whether `game` is running; a game only browsed has a profile but no current state.
         error: The last command or replay error for the user, else `None`.
     """
 
@@ -214,6 +216,7 @@ class Sync:
         self.lock = asyncio.Lock()
         self.store = Store()
         self.game: Game | None = None
+        self.running = False
         self.error: str | None = None
         self._socket_path = socket_path
         self._uid = uid
@@ -256,7 +259,7 @@ class Sync:
             "game_profile": current != GLOBAL,
             "in_game": live is not None and focused_game(live.focus) is not None,
             "default_on": profile_active(self.store, current),
-            "session_on": None if self._game_in_use() is None else self._current_on(),
+            "session_on": None if self._session_game() is None else self._current_on(),
             "error": self.error,
             "store_warning": self._save_warning or self._load_warning,
             "daemon_issue": None if live is not None else self._issue,
@@ -309,7 +312,7 @@ class Sync:
 
         The game in use drops its current state, so it takes the new default; the focus rules are written again,
         and with a game in front pad mode switches when that changes the game's state. A
-        refused switch puts the daemon's reason in `error`; the default stays saved. Without a running game only
+        refused switch puts the daemon's reason in `error`; the default stays saved. Without a game in use only
         the global default is saved and written.
 
         Args:
@@ -359,11 +362,12 @@ class Sync:
         return await self._command(self._check)
 
     async def set_game_profile(self, enabled: bool, initial: Mapping[str, object]) -> dict[str, object]:
-        """Enable or disable the running game's profile and apply the profile and focus rules that follow.
+        """Enable or disable the reported game's profile and apply the profile and focus rules that follow.
 
-        The daemon switches to the profile that now applies and gets the focus rules again. A new profile starts
-        from the global settings and Active, with `initial` then written to it. Without a running game, or past the
-        game profile limit, nothing changes and `error` says why.
+        The game is the running game, or the game whose library page is open (see `set_game`). The daemon switches
+        to the profile that now applies and gets the focus rules again. A new profile starts from the global
+        settings and Active, with `initial` then written to it. Without a reported game, or past the game profile
+        limit, nothing changes and `error` says why.
 
         Args:
             enabled: Whether the game's profile applies.
@@ -375,31 +379,33 @@ class Sync:
         """
         return await self._command(lambda live: self._enable_game_profile(live, enabled, initial))
 
-    async def set_game(self, game: Game | None) -> dict[str, object]:
-        """Record the running game and switch the daemon to the profile that applies.
+    async def set_game(self, game: Game | None, *, running: bool = True) -> dict[str, object]:
+        """Record the game Steam reports and switch the daemon to the profile that applies.
 
         The profile in use is that of the game the daemon reports in front. While it reports none (Steam's UI or
-        an unknown focus), it stays that of the game last in front, or else of the running game reported here.
-        A report of another game, or of none, forgets the game last in front
-        unless the daemon still reports it there; after a report of none, Steam's UI in front forgets it too. Each
-        report drops the current state of every game but the one now running. Reports that arrive while a command
+        an unknown focus), it stays that of the game last in front, or else of the game reported here: the running
+        game, or with none running the game whose library page is open. A report of another game, of none, or of
+        a game that stopped running, forgets the game last in front unless the daemon still reports it there;
+        after a report without a running game, Steam's UI in front forgets it too. Each report drops the current
+        state of every game but the one now running. Reports that arrive while a command
         holds the lock cost one switch, to the game reported last.
         While disconnected the game is only recorded; the next handshake applies it.
 
         Args:
-            game: The running game, or `None`.
+            game: The game, or `None`.
+            running: Whether `game` is running; `False` for a game only browsed in the library.
 
         Returns:
             The snapshot, after emitting it.
         """
         # Recorded before waiting for the lock, so a burst of reports is applied once, as the last one.
-        changed = _appid(game) != _appid(self.game)
+        changed = (_appid(game), running) != (_appid(self.game), self.running)
         if changed:
             self._focus_game = None if self._live is None else focused_game(self._live.focus)
-        self.game, self._game_reported = game, True
+        self.game, self.running, self._game_reported = game, running, True
         async with self.lock:
             if changed:  # under the lock, so a command that held it cannot bring back a state of the ended game
-                self._sessions = _sessions_of(self._sessions, _appid(self.game))
+                self._sessions = _sessions_of(self._sessions, self._running_game())
             self._take_inherited()
             live = self._live
             if live is not None:
@@ -408,9 +414,17 @@ class Sync:
             await self._publish()
             return self.snapshot()
 
+    def _running_game(self) -> int | None:
+        """The app id of the running game Steam reports, or `None`."""
+        return _appid(self.game) if self.running else None
+
     def _game_in_use(self) -> int | None:
-        """The app id of the game in use: the focused game, else the game last in front, else the running game."""
+        """The app id of the game in use: the focused game, else the game last in front, else the reported game."""
         return self._focus_game if self._focus_game is not None else _appid(self.game)
+
+    def _session_game(self) -> int | None:
+        """The app id of the game whose current state applies: as `_game_in_use`, but only a running game."""
+        return self._focus_game if self._focus_game is not None else self._running_game()
 
     def _current_profile(self) -> str:
         """The reference of the profile in use: that of the game in use, else global."""
@@ -418,7 +432,7 @@ class Sync:
 
     def _take_inherited(self) -> None:
         """Make the running game's state from the previous backend's rules its own; drop the rest of them."""
-        appid = _appid(self.game)
+        appid = self._running_game()
         if appid is not None and appid in self._inherited and appid not in self._sessions:
             self._sessions = with_session(self._sessions, appid, self._inherited[appid])
         self._inherited = {}
@@ -430,7 +444,7 @@ class Sync:
 
     def _current_on(self) -> bool:
         """The current state of the game in use: its session's, else the default of the profile in use."""
-        game = self._game_in_use()
+        game = self._session_game()
         if game is not None and game in self._sessions:
             return self._sessions[game]
         return profile_active(self.store, self._current_profile())
@@ -457,7 +471,7 @@ class Sync:
     async def _set_trackpads(self, live: _Live, on: bool) -> bool:
         """Switch pad mode when a game is in front, then record the state and the rules."""
         # Resolved before the await: a game report arriving during the round trip must not redirect the state.
-        game = self._game_in_use()
+        game = self._session_game()
         if game is None:
             self.error = _NO_GAME
             return False
@@ -468,7 +482,7 @@ class Sync:
 
     async def _set_default(self, live: _Live, on: bool) -> bool:
         """Save the default and drop the game's state, write the rules, then switch pad mode if the state changed."""
-        game, was_on = self._game_in_use(), self._current_on()
+        game, was_on = self._session_game(), self._current_on()
         self._update_store(with_profile_active(self.store, self._current_profile(), on))
         self._sessions = {appid: state for appid, state in self._sessions.items() if appid != game}
         if not await self._write_rules(live):
@@ -517,7 +531,7 @@ class Sync:
         return True
 
     async def _enable_game_profile(self, live: _Live, enabled: bool, initial: Mapping[str, object]) -> bool:
-        """Store the running game's profile as enabled or disabled, then switch the profile and write the rules.
+        """Store the reported game's profile as enabled or disabled, then switch the profile and write the rules.
 
         A new profile then gets `initial`, once the daemon holds it.
 
@@ -899,7 +913,7 @@ class Sync:
         game = focused_game(focus)
         if game is None:
             # A game that quit while still in front is no longer in use once Steam reports none running.
-            if self._game_reported and self.game is None:
+            if self._game_reported and self._running_game() is None:
                 self._focus_game = None
             return False
         self._focus_game = game
