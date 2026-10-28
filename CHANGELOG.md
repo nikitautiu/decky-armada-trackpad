@@ -4,6 +4,13 @@ This file lists the user-visible changes to this plugin. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- The panel edits a game's per-game profile from the game's library page, before the game starts, as Steam's
+  Performance tab does. A running game still comes first.
+
 ## [0.1.1] - 2026-10-26
 
 ### Changed

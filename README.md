@@ -41,6 +41,8 @@ It's a [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) plugin,
    - **Radial** starts where you touch, for radial menus.
    - **Swipe** recenters under your finger at an edge, for mouse and camera.
    - **Stick** follows your finger past an edge.
+4. To give a game its own settings, turn on **Use per-game profile** in the panel. As in Steam's Performance tab,
+   this also works before the game starts: open the panel on the game's library page.
 
 ## How it works
 

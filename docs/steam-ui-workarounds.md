@@ -33,6 +33,11 @@ workaround is marked in the code with a `Steam UI workaround:` comment
 - **Running game:** Steam has no event for it, so `SteamUIStore.MainRunningAppID` and `Router.MainRunningApp` are
   polled every 250 ms (`src/game.ts`); the `Router` lookup can fail on another Steam build, and a store getter that
   throws makes the tick unreadable.
+- **Library page game:** with no game running, the panel is for the game whose library page is open. No API names
+  that page. The same poll reads the main window's route
+  (`SteamUIStore.m_WindowStore.GamepadUIMainWindowInstance.m_history.location.pathname`, `/library/app/<appid>`),
+  which keeps its value while the Quick Access menu is open, and the name from `appStore.GetAppOverviewByAppID`
+  (`src/logic/reportedGame.ts`).
 - **Undeclared props and wrapped callbacks:** `SliderField` reads `renderValue`, which `@decky/ui` doesn't declare;
   Decky wraps event callbacks, so a listener is removed with the handle `addEventListener` returned.
 - **Steam's own UI in gamescope:** gamescope reports one focused app id, 769, for the library, the Quick Access
