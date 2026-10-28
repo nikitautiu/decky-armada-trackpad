@@ -1198,6 +1198,23 @@ class TestLibraryPage:
 
         _run(tmp_path, body)
 
+    def test_launch_queued_behind_the_lock_after_a_page_report_gets_a_state(self, tmp_path: Path) -> None:
+        """A page report and the launch of that game, both waiting for the lock, leave a running game with a state."""
+
+        async def body(rig: _Rig) -> None:
+            """The scenario this test runs against the fake daemon."""
+            rig.fake.focused_app = STEAM_UI
+            sync = await _start_connected(rig, _with_games((BALATRO, True, {"size": 1.5})))
+            async with sync.lock:
+                browsing = asyncio.create_task(sync.set_game(BALATRO, running=False))
+                launching = asyncio.create_task(sync.set_game(BALATRO))
+                await asyncio.sleep(0)  # both record their report, then wait for the lock
+            await asyncio.wait_for(asyncio.gather(browsing, launching), 2)
+            assert rig.settings_writes() == [{"changes": {"size": 1.5}}]
+            assert sync.snapshot()["session_on"] is False
+
+        _run(tmp_path, body)
+
     def test_quitting_to_the_page_ends_the_games_state(self, tmp_path: Path) -> None:
         """A game that exits back to its page keeps its profile in use, but its state and rule are gone."""
 

@@ -89,7 +89,7 @@ class Plugin:
         return _sync().snapshot()
 
     async def set_trackpads(self, on: object) -> dict[str, object]:
-        """Set whether the pads are on in the game in use, until it exits; the pads switch now only in the game.
+        """Set whether the pads are on in the running game, until it exits; the pads switch now only in the game.
 
         Args:
             on: Whether the pads are on; must be a bool.

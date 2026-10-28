@@ -228,7 +228,7 @@ class Sync:
         self._focus_game: int | None = None  # the game the daemon last reported in front, while that game runs
         self._sessions: dict[int, bool] = {}  # the current state of each running game by app id, never saved
         self._inherited: dict[int, bool] = {}  # states a previous backend left in the rules, until a game report
-        self._game_reported = False  # Steam has reported the running game (or none) at least once
+        self._game_reported = False  # Steam has reported a game (or none) at least once
         self._first_run = True  # no trustworthy store: adopt the daemon's settings instead of replaying
         self._read_only = False  # the file exists but could not be read, so saving would destroy it
         self._load_warning: str | None = None
@@ -291,9 +291,9 @@ class Sync:
         return frozenset() if live is None else managed_keys(live.settings)
 
     async def set_trackpads(self, on: bool) -> dict[str, object]:
-        """Set the current state of the game in use, and switch pad mode to it while a game is in front.
+        """Set the current state of the running game in use, and switch pad mode to it while a game is in front.
 
-        The game in use is the focused game, else the game last in front, else the running game. The state is kept
+        That game is the focused game, else the game last in front, else the running game. The state is kept
         in memory until the game exits and written to the daemon as that game's focus rule; nothing is saved. With
         Steam's UI in front, or the focus unknown, the pads are left as they are: the rule applies when the game
         regains focus, so they never grab the screen the QAM is drawn on. Without a running game, or when the switch
@@ -443,7 +443,7 @@ class Sync:
         return {**waiting, **self._sessions}
 
     def _current_on(self) -> bool:
-        """The current state of the game in use: its session's, else the default of the profile in use."""
+        """The current state of the running game in use: its session's, else the default of the profile in use."""
         game = self._session_game()
         if game is not None and game in self._sessions:
             return self._sessions[game]

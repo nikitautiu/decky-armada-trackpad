@@ -99,6 +99,29 @@ describe("readLibraryGame", () => {
     expect(readLibraryGame(store(0, `/library/app/${PORTAL}`), apps)).toEqual(browsed({ name: "" }));
   });
 
+  it.each<[string, unknown, unknown]>([
+    [
+      "the route",
+      {
+        get m_WindowStore(): never {
+          throw new Error("gone");
+        },
+      },
+      appStore(),
+    ],
+    [
+      "the name",
+      store(0, `/library/app/${PORTAL}`),
+      {
+        GetAppOverviewByAppID: () => {
+          throw new Error("loading");
+        },
+      },
+    ],
+  ])("reads no game when a Steam getter for %s throws", (_case, steamUIStore, apps) => {
+    expect(readLibraryGame(steamUIStore, apps)).toEqual(NO_GAME);
+  });
+
   it("cuts a name longer than the backend accepts", () => {
     const game = readLibraryGame(store(0, `/library/app/${PORTAL}`), appStore("x".repeat(200)));
     expect(game.name).toBe("x".repeat(128));
@@ -113,6 +136,15 @@ describe("readReportedGame", () => {
 
   it("reads the library page's game when no game runs", () => {
     expect(readReportedGame(store(0, `/library/app/${PORTAL}`), undefined, appStore())).toEqual(browsed());
+  });
+
+  it("reports a game's exit even when the library page can't be read", () => {
+    const apps = {
+      GetAppOverviewByAppID: () => {
+        throw new Error("loading");
+      },
+    };
+    expect(readReportedGame(store(0, `/library/app/${PORTAL}`), undefined, apps)).toEqual(NO_GAME);
   });
 
   it("reads no game with none running and no game's page open", () => {

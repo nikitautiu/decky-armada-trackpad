@@ -44,19 +44,26 @@ export function readRunningGame(steamUIStore: unknown, mainRunningApp: unknown):
 }
 
 /**
- * Read the game whose library page Steam's main window shows, from Steam's undocumented frontend objects.
+ * Read the game whose library page Steam's main window shows, from Steam's undocumented frontend objects; no game
+ * when they can't be read.
  *
  * @param steamUIStore - `SteamUIStore`, of any shape; its main window's route names the page.
  * @param appStore - Steam's `appStore`, of any shape; it names the game.
  */
 export function readLibraryGame(steamUIStore: unknown, appStore: unknown): ReportedGame {
-  const window = field(field(steamUIStore, "m_WindowStore"), "GamepadUIMainWindowInstance");
-  const route = field(field(field(window, "m_history"), "location"), "pathname");
-  const page = typeof route === "string" ? LIBRARY_PAGE.exec(route) : null;
-  const appid = appIdOf(page?.[1]) ?? 0;
-  if (appid === 0) return NO_GAME;
-  const name = nameOf(field(callMethod(appStore, "GetAppOverviewByAppID", appid), "display_name"));
-  return { appid, name, running: false };
+  try {
+    const window = field(field(steamUIStore, "m_WindowStore"), "GamepadUIMainWindowInstance");
+    const route = field(field(field(window, "m_history"), "location"), "pathname");
+    const page = typeof route === "string" ? LIBRARY_PAGE.exec(route) : null;
+    const appid = appIdOf(page?.[1]) ?? 0;
+    if (appid === 0) return NO_GAME;
+    const name = nameOf(field(callMethod(appStore, "GetAppOverviewByAppID", appid), "display_name"));
+    return { appid, name, running: false };
+  } catch {
+    // Steam UI workaround: a getter in Steam's stores threw, as the library's can while it loads. Unlike the running
+    // game, this read must not make the tick unreadable: that would hold back the report of a game that just exited.
+    return NO_GAME;
+  }
 }
 
 /**
