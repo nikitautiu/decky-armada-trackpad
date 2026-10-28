@@ -9,7 +9,7 @@ This file lists the user-visible changes to this plugin. The format follows
 ### Fixed
 
 - The "Using … profile" line keeps its height when the per-game profile is switched, and a long game name is cut
-  with an ellipsis instead of wrapping, as in Steam's Performance tab.
+  with an ellipsis instead of wrapping. Its icon size and spacing match Steam's Performance tab.
 - **Start with trackpads on** no longer repeats "Global profile" under it. The line above already shows the profile.
 
 ## [0.2.0] - 2026-10-28

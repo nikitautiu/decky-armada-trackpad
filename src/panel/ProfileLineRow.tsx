@@ -4,7 +4,8 @@ import { gameIconUrl } from "../logic/gameIcon";
 import type { ProfileLine } from "../logic/view";
 import { PROFILE_LINE } from "./style";
 
-const ICON_PX = 20;
+// The icon size, the gap after it and the margin below the line match the line under Steam's Performance settings.
+const ICON_PX = 16;
 // One line, cut with an ellipsis like the Performance tab's, so a long name never changes the line's height.
 const ONE_LINE = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 } as const;
 
@@ -37,8 +38,18 @@ function GameIcon({ appid }: { readonly appid: number }): ReactNode {
 export function ProfileLineRow({ line }: { readonly line: ProfileLine }): ReactNode {
   return (
     <PanelSectionRow>
-      {/* The icon's height as the minimum, so switching between a game's line and the global one keeps it. */}
-      <div style={{ ...PROFILE_LINE, display: "flex", alignItems: "center", gap: "1ch", minHeight: `${ICON_PX}px` }}>
+      {/* The icon's height as the minimum, so switching between a game's line and the global one keeps it; the
+      margin keeps the icon off the focus highlight of the row below, as in the Performance tab. */}
+      <div
+        style={{
+          ...PROFILE_LINE,
+          display: "flex",
+          alignItems: "center",
+          gap: "11px",
+          minHeight: `${ICON_PX}px`,
+          marginBottom: "3px",
+        }}
+      >
         {line.kind === "game" ? (
           <>
             <GameIcon appid={line.appid} />
